@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/devkcud/go-library-api/internal/collections"
@@ -11,6 +12,7 @@ import (
 )
 
 const mongoURL string = "mongodb://localhost:27017"
+const port int = 8080
 
 func main() {
 	// Establish a connection to MongoDB
@@ -23,11 +25,13 @@ func main() {
 	// Create a gin router
 	router := gin.Default()
 
+	// Routes
 	router.GET("/books", booksCollection.GetBooks)
 	router.GET("/books/:id", booksCollection.GetSpecificBook)
 	router.POST("/books", booksCollection.PostBook)
 
-	router.Run(":8080")
+	// Listen and serve on localhost:8080
+	router.Run(fmt.Sprintf(":%d", port))
 
 	// Disconnect from MongoDB
 	defer client.Disconnect(context.TODO())

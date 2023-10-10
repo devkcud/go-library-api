@@ -29,6 +29,7 @@ func main() {
 	router.GET("/books", booksCollection.GetBooks)
 	router.GET("/books/:id", booksCollection.GetSpecificBook)
 	router.POST("/books", booksCollection.PostBook)
+	router.DELETE("/books/:id", booksCollection.DeleteBook)
 
 	// Listen and serve on localhost:8080
 	router.Run(fmt.Sprintf(":%d", port))

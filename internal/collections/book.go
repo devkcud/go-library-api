@@ -103,3 +103,31 @@ func (bc *BookCollection) DeleteBook(c *gin.Context) {
 	// Return a message
 	c.JSON(http.StatusOK, gin.H{"message": "Book deleted successfully"})
 }
+
+func (bc *BookCollection) UpdateBook(c *gin.Context) {
+	id := c.Param("id")
+
+	// Check if the id is a valid ObjectID
+	objID, err := primitive.ObjectIDFromHex(id)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Bind the book struct with the json request body
+	var book models.Book
+
+	if err := c.BindJSON(&book); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Set the _id field as a the previous ObjectID
+	book.ID = objID
+
+	// Update the book
+	_, err = bc.collection.UpdateOne(c.Request.Context(), bson.M{"_id": objID}, bson.M{"$set": book})
+
+	c.JSON(http.StatusOK, gin.H{"message": &book})
+}

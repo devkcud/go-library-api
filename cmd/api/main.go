@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"log"
-	"net/http"
 
+	"github.com/devkcud/go-library-api/internal/collections"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -12,40 +12,20 @@ import (
 
 const mongoURL string = "mongodb://localhost:27017"
 
-type Book struct {
-	ID     int    `bson:"_id" binding:"required"`
-	Name   string `bson:"name" binding:"required"`
-	Author string `bson:"author" binding:"required"`
-}
-
 func main() {
 	// Establish a connection to MongoDB
 	client := connectMongoDB()
 
 	// Create a database
 	db := client.Database("library")
-	booksCollection := db.Collection("books")
+	booksCollection := collections.NewBookCollection(db)
 
 	// Create a gin router
 	router := gin.Default()
 
-	router.POST("/books", func(c *gin.Context) {
-		var book Book
-
-		if err := c.ShouldBindJSON(&book); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		result, err := booksCollection.InsertOne(context.TODO(), book)
-
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		c.JSON(http.StatusOK, result)
-	})
+	router.GET("/books", booksCollection.GetBooks)
+	router.GET("/books/:id", booksCollection.GetSpecificBook)
+	router.POST("/books", booksCollection.PostBook)
 
 	router.Run(":8080")
 

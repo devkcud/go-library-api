@@ -1,0 +1,9 @@
+{
+    "MongoURI": "mongodb://localhost:27017",
+
+    "DatabaseName": "library",
+    "CollectionName": "books",
+
+    "APIHost": "",
+    "APIPort": 8080
+}

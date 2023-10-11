@@ -2,8 +2,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"os"
+	"path/filepath"
+	"runtime"
 
 	"github.com/devkcud/go-library-api/internal/collections"
 	"github.com/gin-gonic/gin"
@@ -11,37 +16,37 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-const mongoURL string = "mongodb://localhost:27017"
-const port int = 8080
+type Config struct {
+	MongoURI string `json:"mongoURI"`
 
-func main() {
-	// Establish a connection to MongoDB
-	client := connectMongoDB()
+	DatabaseName   string `json:"databaseName"`
+	CollectionName string `json:"collectionName"`
 
-	// Create a database
-	db := client.Database("library")
-	booksCollection := collections.NewBookCollection(db)
-
-	// Create a gin router
-	router := gin.Default()
-
-	// Routes
-	router.GET("/books", booksCollection.GetBooks)
-	router.GET("/books/:id", booksCollection.GetSpecificBook)
-	router.POST("/books", booksCollection.PostBook)
-	router.DELETE("/books/:id", booksCollection.DeleteBook)
-    router.PATCH("/books/:id", booksCollection.UpdateBook)
-
-	// Listen and serve on localhost:8080
-	router.Run(fmt.Sprintf(":%d", port))
-
-	// Disconnect from MongoDB
-	defer client.Disconnect(context.TODO())
-	log.Println("Disconnected from MongoDB!")
+	APIHost string `json:"APIHost"`
+	APIPort int    `json:"APIPort"`
 }
 
-func connectMongoDB() *mongo.Client {
-	clientOptions := options.Client().ApplyURI(mongoURL)
+var config Config
+
+func main() {
+	// Get the absolute path of root during build phase
+	_, file, _, _ := runtime.Caller(0)
+	jsonFile, err := os.Open(filepath.Join(filepath.Dir(file), "..", "..", "config.json"))
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer jsonFile.Close()
+
+	// Read the config
+	jsonByteContent, _ := io.ReadAll(jsonFile)
+
+	// Unmarshal the config
+	json.Unmarshal(jsonByteContent, &config)
+
+	// Establish a connection to MongoDB
+	clientOptions := options.Client().ApplyURI(config.MongoURI)
 
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 
@@ -56,5 +61,25 @@ func connectMongoDB() *mongo.Client {
 	}
 
 	log.Println("Connected to MongoDB!")
-	return client
+
+	// Create a database
+	db := client.Database(config.DatabaseName)
+	booksCollection := collections.NewBookCollection(db, config.CollectionName)
+
+	// Create a gin router
+	router := gin.Default()
+
+	// Routes
+	router.GET("/books", booksCollection.GetBooks)
+	router.GET("/books/:id", booksCollection.GetSpecificBook)
+	router.POST("/books", booksCollection.PostBook)
+	router.DELETE("/books/:id", booksCollection.DeleteBook)
+	router.PATCH("/books/:id", booksCollection.UpdateBook)
+
+	// Listen and serve
+	router.Run(fmt.Sprintf("%s:%d", config.APIHost, config.APIPort))
+
+	// Disconnect from MongoDB
+	defer client.Disconnect(context.TODO())
+	log.Println("Disconnected from MongoDB!")
 }

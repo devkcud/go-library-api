@@ -14,8 +14,8 @@ type BookCollection struct {
 	collection *mongo.Collection
 }
 
-func NewBookCollection(db *mongo.Database) *BookCollection {
-	return &BookCollection{db.Collection("books")}
+func NewBookCollection(db *mongo.Database, collectionName string) *BookCollection {
+	return &BookCollection{db.Collection(collectionName)}
 }
 
 func (bc *BookCollection) PostBook(c *gin.Context) {
